@@ -19,12 +19,78 @@ class MyApp extends StatelessWidget {
           bodyLarge: TextStyle(fontSize: 16, color: Colors.black),
         ),
       ),
-      home: LoginScreen(),
+      home: HomeScreen(),
     );
   }
 }
 
-// LoginScreen Widget
+// Ana Sayfa
+class HomeScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('Ana Sayfa')),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            FadeInDown(
+              duration: Duration(milliseconds: 600),
+              child: Icon(Icons.shopping_cart, size: 80, color: Colors.blue),
+            ),
+            SizedBox(height: 20),
+            Text('Hoş geldiniz!', style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => LoginScreen()),
+                );
+              },
+              child: Text('Giriş Yap'),
+            ),
+            SizedBox(height: 40),
+            Text('Alışveriş Marketleri', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+            SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildMarketIcon(context, 'assets/n11.jpg'),
+                _buildMarketIcon(context, 'assets/trendyol.png'),
+                _buildMarketIcon(context, 'assets/aliexpress.jpeg'),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMarketIcon(BuildContext context, String imagePath) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => LoginScreen()),
+        );
+      },
+      child: Padding(
+        padding: const EdgeInsets.all(10.0),
+        child: BounceInDown(
+          duration: Duration(milliseconds: 800),
+          child: CircleAvatar(
+            radius: 40,
+            backgroundColor: Colors.blueAccent,
+            child: Image.asset(imagePath),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Giriş Ekranı
 class LoginScreen extends StatefulWidget {
   @override
   _LoginScreenState createState() => _LoginScreenState();
@@ -35,13 +101,12 @@ class _LoginScreenState extends State<LoginScreen> {
   final passwordController = TextEditingController();
   bool isLoading = false;
 
-  // Giriş yapma işlemi
   Future<void> loginUser() async {
     setState(() => isLoading = true);
-    
+
     try {
       final response = await http.post(
-        Uri.parse('http://10.0.2.2:5000/login'),
+        Uri.parse('http://142.251.141.46/login'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'email': emailController.text,
@@ -55,7 +120,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (response.statusCode == 200) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => HomeScreen(userId: data['userId'])),
+          MaterialPageRoute(builder: (context) => HomeScreen()),
         );
       } else {
         showError(data['error'] ?? 'Giriş başarısız!');
@@ -66,7 +131,6 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  // Hata mesajı gösterme
   void showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message)),
@@ -76,6 +140,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(title: Text('Giriş Yap')),
       body: Center(
         child: Padding(
           padding: EdgeInsets.symmetric(horizontal: 32),
@@ -132,7 +197,6 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // TextField widget'ı için ortak yapı
   Widget _buildTextField(TextEditingController controller, String label, IconData icon, {bool obscureText = false}) {
     return TextField(
       controller: controller,
@@ -146,7 +210,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 }
 
-// RegisterScreen Widget
+// Kayıt Ekranı
 class RegisterScreen extends StatefulWidget {
   @override
   _RegisterScreenState createState() => _RegisterScreenState();
@@ -158,7 +222,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final confirmPasswordController = TextEditingController();
   bool isLoading = false;
 
-  // Kayıt olma işlemi
   Future<void> registerUser() async {
     if (passwordController.text != confirmPasswordController.text) {
       showError('Şifreler eşleşmiyor!');
@@ -166,10 +229,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
 
     setState(() => isLoading = true);
-    
+
     try {
       final response = await http.post(
-        Uri.parse('http://10.0.2.2:5000/register'),
+        Uri.parse('http://142.251.141.46/register'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'email': emailController.text,
@@ -194,7 +257,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
-  // Hata mesajı gösterme
   void showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message)),
@@ -244,7 +306,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  // TextField widget'ı için ortak yapı
   Widget _buildTextField(TextEditingController controller, String label, IconData icon, {bool obscureText = false}) {
     return TextField(
       controller: controller,
@@ -254,20 +315,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
         prefixIcon: Icon(icon, color: Colors.blueAccent),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       ),
-    );
-  }
-}
-
-// HomeScreen Widget
-class HomeScreen extends StatelessWidget {
-  final int userId;
-  HomeScreen({required this.userId});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('Ana Sayfa')),
-      body: Center(child: Text('Hoş geldiniz! Kullanıcı ID: $userId')),
     );
   }
 }
