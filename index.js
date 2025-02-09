@@ -8,11 +8,11 @@ const bcrypt = require("bcrypt");
 const app = express();
 const PORT = 5000; // Flutter ile aynı portu kullan
 
-// 📌 Middleware'ler
+//  Middleware'ler
 app.use(cors({ origin: '*' })); // CORS izinleri
 app.use(bodyParser.json()); // JSON veriyi okumak için
 
-// 📌 MySQL Bağlantısı
+//  MySQL Bağlantısı
 const db = mysql.createConnection({
     host: 'localhost',
     user: 'root',
@@ -21,16 +21,16 @@ const db = mysql.createConnection({
     multipleStatements: true, // Birden fazla SQL sorgusuna izin ver
 });
 
-// 📌 MySQL Bağlantı Kontrolü
+//  MySQL Bağlantı Kontrolü
 db.connect((err) => {
     if (err) {
-        console.error('⛔ MySQL bağlantı hatası:', err);
+        console.error(' MySQL bağlantı hatası:', err);
         process.exit(1); // Hata varsa çık
     }
-    console.log('✅ MySQL bağlantısı başarılı!');
+    console.log(' MySQL bağlantısı başarılı!');
 });
 
-// 📌 Kullanıcı Kayıt API (POST /register)
+//  Kullanıcı Kayıt API (POST /register)
 app.post('/register', async (req, res) => {
     const { name, surname, tc_no, address, email, phone, payment_info, password } = req.body;
 
@@ -49,18 +49,18 @@ app.post('/register', async (req, res) => {
 
         db.query(sql, [name, surname, tc_no, address, email, phone, payment_info, hashedPassword], (err, result) => {
             if (err) {
-                console.error('⛔ Veritabanı hatası:', err);
+                console.error(' Veritabanı hatası:', err);
                 return res.status(500).json({ error: 'Kullanıcı kaydedilemedi.' });
             }
-            res.status(201).json({ message: '✅ Kullanıcı başarıyla kaydedildi!' });
+            res.status(201).json({ message: ' Kullanıcı başarıyla kaydedildi!' });
         });
     } catch (err) {
-        console.error('⛔ Şifre işleme hatası:', err);
+        console.error(' Şifre işleme hatası:', err);
         res.status(500).json({ error: 'Şifre işlenirken hata oluştu.' });
     }
 });
 
-// 📌 Kullanıcı Giriş API (POST /login)
+//  Kullanıcı Giriş API (POST /login)
 app.post('/login', (req, res) => {
     const { email, password } = req.body;
 
@@ -71,7 +71,7 @@ app.post('/login', (req, res) => {
     const sql = 'SELECT * FROM users WHERE email = ?';
     db.query(sql, [email], async (err, results) => {
         if (err) {
-            console.error('⛔ Veritabanı hatası:', err);
+            console.error(' Veritabanı hatası:', err);
             return res.status(500).json({ error: 'Giriş işlemi başarısız oldu.' });
         }
 
@@ -87,18 +87,18 @@ app.post('/login', (req, res) => {
             return res.status(401).json({ error: 'Şifre yanlış!' });
         }
 
-        res.status(200).json({ message: '✅ Giriş başarılı!', userId: user.id });
+        res.status(200).json({ message: ' Giriş başarılı!', userId: user.id });
     });
 });
 
-// 📌 Kullanıcı Bilgilerini Getirme API (GET /user/:id)
+//  Kullanıcı Bilgilerini Getirme API (GET /user/:id)
 app.get('/user/:id', (req, res) => {
     const userId = req.params.id;
     
     const sql = 'SELECT id, name, surname, email, phone, address FROM users WHERE id = ?';
     db.query(sql, [userId], (err, results) => {
         if (err) {
-            console.error('⛔ Veritabanı hatası:', err);
+            console.error(' Veritabanı hatası:', err);
             return res.status(500).json({ error: 'Kullanıcı bilgileri getirilemedi.' });
         }
 
@@ -110,7 +110,7 @@ app.get('/user/:id', (req, res) => {
     });
 });
 
-// 📌 Alışveriş Kaydetme API (POST /save-purchase)
+//  Alışveriş Kaydetme API (POST /save-purchase)
 app.post('/save-purchase', (req, res) => {
     const { user_id, platform, amount } = req.body;
 
@@ -121,21 +121,21 @@ app.post('/save-purchase', (req, res) => {
     const sql = 'INSERT INTO purchases (user_id, platform, amount) VALUES (?, ?, ?)';
     db.query(sql, [user_id, platform, amount], (err, result) => {
         if (err) {
-            console.error('⛔ Veritabanı hatası:', err);
+            console.error(' Veritabanı hatası:', err);
             return res.status(500).json({ error: 'Alışveriş kaydedilemedi.' });
         }
-        res.status(201).json({ message: '✅ Alışveriş kaydedildi!' });
+        res.status(201).json({ message: ' Alışveriş kaydedildi!' });
     });
 });
 
-// 📌 Kullanıcının Alışveriş Geçmişi (GET /purchases/:userId)
+//  Kullanıcının Alışveriş Geçmişi (GET /purchases/:userId)
 app.get('/purchases/:userId', (req, res) => {
     const userId = req.params.userId;
 
     const sql = 'SELECT * FROM purchases WHERE user_id = ?';
     db.query(sql, [userId], (err, results) => {
         if (err) {
-            console.error('⛔ Veritabanı hatası:', err);
+            console.error('Veritabanı hatası:', err);
             return res.status(500).json({ error: 'Alışveriş geçmişi getirilemedi.' });
         }
 
@@ -145,5 +145,5 @@ app.get('/purchases/:userId', (req, res) => {
 
 // 📌 Sunucuyu Başlat
 app.listen(PORT, () => {
-    console.log(`🚀 Sunucu ${PORT} portunda çalışıyor...`);
+    console.log(` Sunucu ${PORT} portunda çalışıyor...`);
 });
