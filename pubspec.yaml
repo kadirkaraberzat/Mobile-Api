@@ -18,6 +18,8 @@ dependencies:
   video_player: ^2.9.2
   chewie: ^1.7.4
   flutter_tts: ^3.6.3  # Metin okuma için ekledim
+  flutter_webrtc: ^0.12.10 #webrtc icin
+  web_socket_channel: ^2.1.0  #web socket icin
 
 dev_dependencies:
   flutter_test:

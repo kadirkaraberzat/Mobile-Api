@@ -3,6 +3,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:animate_do/animate_do.dart';
 import 'package:video_player/video_player.dart';
+import 'package:flutter_webrtc/flutter_webrtc.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
 
 void main() {
   runApp(MyApp());
@@ -17,7 +19,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: HomeScreen(),
+      home: HomeScreen(), // Burada HomeScreen widget
     );
   }
 }
@@ -97,7 +99,8 @@ class RegisterScreen extends StatelessWidget {
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => NormalRegisterScreen()),
+                    MaterialPageRoute(
+                        builder: (context) => NormalRegisterScreen()),
                   );
                 },
                 child: Text('Okur Yazarım - Normal Kayıt'),
@@ -107,7 +110,8 @@ class RegisterScreen extends StatelessWidget {
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => CustomerServiceScreen()),
+                    MaterialPageRoute(
+                        builder: (context) => CustomerServiceScreen()),
                   );
                 },
                 child: Text('Okur Yazar Değilim - Müşteri Hizmetleri'),
@@ -183,31 +187,151 @@ class NormalRegisterScreen extends StatelessWidget {
   }
 }
 
-class CustomerServiceScreen extends StatelessWidget {
+class CustomerServiceScreen extends StatefulWidget {
+  @override
+  _CustomerServiceScreenState createState() => _CustomerServiceScreenState();
+}
+
+class _CustomerServiceScreenState extends State<CustomerServiceScreen> {
+  late RTCVideoRenderer _remoteRenderer;
+  late RTCVideoRenderer _localRenderer;
+  late WebSocketChannel _channel; // WebSocket
+  late RTCPeerConnection _peerConnection;
+  late MediaStream _localStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _remoteRenderer = RTCVideoRenderer();
+    _localRenderer = RTCVideoRenderer();
+    initializeRenderers();
+    _initializeWebSocket();
+  }
+
+  @override
+  void dispose() {
+    _remoteRenderer.dispose();
+    _localRenderer.dispose();
+    _peerConnection.dispose();
+    _channel.sink.close();
+    super.dispose();
+  }
+
+  void initializeRenderers() async {
+    await _remoteRenderer.initialize();
+    await _localRenderer.initialize();
+  }
+
+  // WebSocket bağlantısını başlatma
+  void _initializeWebSocket() {
+    _channel = WebSocketChannel.connect(
+      Uri.parse('ws://localhost:8080'),
+    );
+
+    _channel.stream.listen((message) {
+      print('WebSocket message: $message');
+    });
+  }
+
+  Future<void> _startLocalStream() async {
+    MediaStream stream = await navigator.mediaDevices.getUserMedia({
+      'video': true,
+      'audio': true,
+    });
+    _localStream = stream;
+    _localRenderer.srcObject = _localStream;
+    _createPeerConnection();
+  }
+
+  Future<void> _createPeerConnection() async {
+    _peerConnection = await createPeerConnection({
+      'iceServers': [
+        {'urls': 'stun:stun.l.google.com:19302'},
+      ],
+    });
+
+    _peerConnection.onIceCandidate = (candidate) {
+      if (candidate != null) {
+        _sendMessage({'type': 'candidate', 'candidate': candidate.toMap()});
+      }
+    };
+
+    _peerConnection.onAddStream = (stream) {
+      _remoteRenderer.srcObject = stream;
+    };
+
+    _peerConnection.addStream(_localStream);
+  }
+
+  void connectToCustomerService() async {
+    await _startLocalStream();
+    RTCSessionDescription offer = await _peerConnection.createOffer();
+    await _peerConnection.setLocalDescription(offer);
+    _sendMessage({'type': 'offer', 'sdp': offer.sdp});
+  }
+
+  void _sendMessage(Map<String, dynamic> message) {
+    _channel.sink.add(message);
+  }
+
+  void _endCall() {
+    _peerConnection.close();
+    _channel.sink.close();
+    Navigator.pop(context);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text('Müşteri Hizmetleri')),
-      body: Center(
-        child: Pulse(
-          duration: Duration(milliseconds: 1000),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                'Müşteri hizmetlerine bağlanmak için aşağıdaki butona tıklayın:',
-                style: TextStyle(fontSize: 16),
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: Container(
+              color: Colors.black,
+              child: RTCVideoView(
+                _localRenderer,
+                mirror: true,
+                objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
               ),
-              SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () {
-                  // Müşteri hizmetlerine bağlanma işlemi
-                },
-                child: Text('Bağlan'),
-              ),
-            ],
+            ),
           ),
-        ),
+          Positioned(
+            bottom: 20,
+            right: 20,
+            child: Draggable(
+              feedback: Container(
+                width: 150,
+                height: 200,
+                color: Colors.white,
+                child: RTCVideoView(_remoteRenderer),
+              ),
+              childWhenDragging: Container(),
+              child: Container(
+                width: 150,
+                height: 200,
+                color: Colors.white,
+                child: RTCVideoView(_remoteRenderer),
+              ),
+            ),
+          ),
+        ],
+      ),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FloatingActionButton(
+            onPressed: connectToCustomerService,
+            child: Icon(Icons.call),
+            backgroundColor: Colors.green,
+          ),
+          SizedBox(height: 10),
+          FloatingActionButton(
+            onPressed: _endCall,
+            child: Icon(Icons.call_end),
+            backgroundColor: Colors.red,
+          ),
+        ],
       ),
     );
   }
